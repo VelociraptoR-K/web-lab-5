@@ -33,7 +33,7 @@ public class SecurityHandler {
 
         private NewCookie refreshCookie(String token, int maxAge) {
                 return new NewCookie.Builder("refreshToken")
-                                .value(token).path("/api/auth")
+                                .value(token).path("/")
                                 .httpOnly(true)
                                 .sameSite(NewCookie.SameSite.STRICT)
                                 .secure(false)
