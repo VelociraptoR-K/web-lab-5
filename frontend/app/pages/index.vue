@@ -1,7 +1,11 @@
 <script setup lang="ts">
-await navigateTo("/students", { replace: true });
+definePageMeta({
+    middleware: ['auth'],
+});
+
+await navigateTo('/students', { replace: true });
 </script>
 
 <template>
-  <div />
+    <div />
 </template>

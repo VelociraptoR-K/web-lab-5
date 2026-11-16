@@ -1,11 +1,11 @@
-import { defineEventHandler, getRequestURL, proxyRequest } from "h3";
+import { defineEventHandler, getRequestURL, proxyRequest } from 'h3';
 
 export default defineEventHandler((event) => {
-  const config = useRuntimeConfig(event);
-  const url = getRequestURL(event);
+    const config = useRuntimeConfig(event);
+    const url = getRequestURL(event);
 
-  const path = url.pathname.slice("/api".length);
-  const target = `${config.javaApiBaseUrl}${path}${url.search}`;
+    const path = url.pathname.slice('/api'.length);
+    const target = `${config.javaApiBaseUrl}${path}${url.search}`;
 
-  return proxyRequest(event, target);
+    return proxyRequest(event, target);
 });
