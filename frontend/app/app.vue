@@ -1,6 +1,17 @@
+<script setup lang="ts">
+import AppFooter from "~/components/AppFooter/AppFooter.vue";
+</script>
+
 <template>
-  <div>
+  <div class="app-shell">
     <NuxtRouteAnnouncer />
-    <NuxtWelcome />
+
+    <main>
+      <NuxtPage />
+    </main>
+
+    <AppFooter />
   </div>
 </template>
+
+<style src="./assets/styles/app.css"></style>
