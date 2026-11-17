@@ -1,7 +1,7 @@
 import { useUserStore } from '~/stores/user';
 import { formatApiError } from '~/api/errors';
 import { createFetchError, FetchError } from 'ofetch';
-import type { NitroFetchOptions } from 'nitropack';
+import type { $Fetch, FetchOptions } from 'ofetch';
 import type { AccessTokenResponse } from '~/types/auth';
 
 export default defineNuxtPlugin((nuxtApp) => {
@@ -44,7 +44,7 @@ export default defineNuxtPlugin((nuxtApp) => {
             error.message = formatApiError(error);
             throw error;
         },
-    });
+    }) as $Fetch;
 
     let refreshPromise: Promise<void> | null = null;
 
@@ -66,7 +66,7 @@ export default defineNuxtPlugin((nuxtApp) => {
         return refreshPromise;
     }
 
-    async function api<T>(path: string, options: NitroFetchOptions<string> = {}): Promise<T> {
+    async function api<T>(path: string, options: FetchOptions<'json'> = {}): Promise<T> {
         const publicRequest = [
             '/auth/login',
             '/auth/register',
