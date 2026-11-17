@@ -13,7 +13,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     const client = $fetch.create({
         baseURL: config.public.apiBaseUrl,
-        headers,
+        headers: headers,
         retry: 0,
 
         onRequest({ options }) {
@@ -48,19 +48,21 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     let refreshPromise: Promise<void> | null = null;
 
+    async function refreshToken(): Promise<void> {
+        try {
+            const data = await client<AccessTokenResponse>('/auth/refresh', {
+                method: 'POST',
+            });
+            userStore.setAccessToken(data.accessToken);
+        } finally {
+            refreshPromise = null;
+        }
+    }
+
     function refreshOnce(): Promise<void> {
         if (refreshPromise === null) {
-            refreshPromise = client<AccessTokenResponse>('/auth/refresh', {
-                method: 'POST',
-            })
-                .then((data) => {
-                    userStore.setAccessToken(data.accessToken);
-                })
-                .finally(() => {
-                    refreshPromise = null;
-                });
+            refreshPromise = refreshToken();
         }
-
         return refreshPromise;
     }
 
@@ -71,7 +73,6 @@ export default defineNuxtPlugin((nuxtApp) => {
             '/auth/refresh',
             '/auth/logout',
         ].includes(path);
-
         const previousToken = userStore.accessToken;
 
         try {
@@ -90,10 +91,8 @@ export default defineNuxtPlugin((nuxtApp) => {
                 } catch (refreshError: unknown) {
                     if (refreshError instanceof FetchError && refreshError.status === 401) {
                         userStore.clearUser();
-
                         await nuxtApp.runWithContext(() => navigateTo('/login', { replace: true }));
                     }
-
                     throw refreshError;
                 }
             }

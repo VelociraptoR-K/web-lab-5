@@ -3,8 +3,6 @@ import { useUserStore } from '~/stores/user';
 export default defineNuxtPlugin(() => {
     const userStore = useUserStore();
     const auth = useAuthApi();
-
-    const isRestored = useState<boolean>('session-restored', () => false);
     let sessionPromise: Promise<void> | null = null;
 
     async function loadSession(): Promise<void> {
@@ -14,28 +12,32 @@ export default defineNuxtPlugin(() => {
                 const user = await auth.getCurrentUser();
                 userStore.setUser(user);
             }
-            isRestored.value = true;
+            userStore.isSessionRestored = true;
         } catch (error: unknown) {
             userStore.clearUser();
             throw error;
         }
     }
 
-    function restoreSession(): Promise<void> {
-        if (isRestored.value) {
-            return Promise.resolve();
-        }
+    async function restoreSession(): Promise<void> {
+        if (userStore.isSessionRestored) return;
+
         if (sessionPromise === null) {
-            sessionPromise = loadSession().finally(() => {
-                sessionPromise = null;
-            });
+            sessionPromise = loadSession();
         }
 
-        return sessionPromise;
+        try {
+            await sessionPromise;
+        } catch (error: unknown) {
+            sessionPromise = null;
+            throw error;
+        }
+
+        sessionPromise = null;
     }
 
     function resetSessionRestore(): void {
-        isRestored.value = false;
+        userStore.isSessionRestored = false;
     }
 
     return {

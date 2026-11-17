@@ -8,6 +8,7 @@ export const useUserStore = defineStore('user', () => {
 
     const isAuthenticated = computed(() => user.value !== null);
     const isAdmin = computed(() => user.value?.role === 'ADMIN');
+    const isSessionRestored = ref(false);
 
     function setAccessToken(value: string | null): void {
         accessToken.value = value;
@@ -27,6 +28,7 @@ export const useUserStore = defineStore('user', () => {
         accessToken,
         isAuthenticated,
         isAdmin,
+        isSessionRestored,
         setUser,
         setAccessToken,
         clearUser,
