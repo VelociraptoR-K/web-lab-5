@@ -6,6 +6,7 @@ import type {
     CreateStudentRequest,
     UpdateStudentRequest,
 } from '~/types/student';
+import { notifyStudentsChanged } from '~/streams/studentChanges';
 
 export function useStudentApi() {
     const { $api } = useNuxtApp();
@@ -62,6 +63,11 @@ export function useStudentApi() {
             method: 'POST',
             body: student,
         });
+
+        if (import.meta.client) {
+            notifyStudentsChanged();
+        }
+
         return data.student;
     }
 
@@ -70,6 +76,11 @@ export function useStudentApi() {
             method: 'PATCH',
             body: changedFields,
         });
+
+        if (import.meta.client) {
+            notifyStudentsChanged();
+        }
+
         return data.student;
     }
 
@@ -77,6 +88,10 @@ export function useStudentApi() {
         await $api<void>(`/students/${id}`, {
             method: 'DELETE',
         });
+
+        if (import.meta.client) {
+            notifyStudentsChanged();
+        }
     }
 
     return {

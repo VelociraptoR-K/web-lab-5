@@ -1,6 +1,9 @@
-import { computed, onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, onMounted, ref, watch } from 'vue';
 import { useUserStore } from '~/stores/user';
 import type { StudentFiltersParams } from '~/types/filterParams';
+import { EMPTY, catchError, defer, exhaustMap } from 'rxjs';
+import type { Subscription } from 'rxjs';
+import { createStudentRefreshStream } from '~/streams/studentRefresh';
 
 export function useStudentsList() {
     const config = useRuntimeConfig();
@@ -19,24 +22,76 @@ export function useStudentsList() {
     });
     const currentPage = ref(1);
     const pageSize = Number(config.public.studentsPageSize);
+    const studentsQuery = computed(() => ({
+        ...activeFilters.value,
+        page: currentPage.value,
+        limit: pageSize,
+    }));
+
+    const isStudentsOutdated = ref(false);
 
     const totalPages = computed(() => data.value?.totalPages ?? 0);
     const rowOffset = computed(() => ((data.value?.page ?? 1) - 1) * pageSize);
 
     const { data, status, error, refresh } = useAsyncData(
         'students-list',
-        () =>
-            getStudents({
-                ...activeFilters.value,
-                page: currentPage.value,
-                limit: pageSize,
-            }),
+        () => getStudents(studentsQuery.value),
         {
             server: false,
             lazy: true,
             watch: [currentPage, activeFilters],
         },
     );
+
+    watch(data, () => {
+        isStudentsOutdated.value = false;
+    });
+
+    let refreshSubscription: Subscription | undefined;
+
+    onMounted(() => {
+        refreshSubscription = createStudentRefreshStream(
+            Number(config.public.studentsRefreshMs),
+            () =>
+                userStore.isAuthenticated &&
+                Boolean(data.value) &&
+                !isLoading.value &&
+                !isDeleting.value,
+        )
+            .pipe(
+                exhaustMap(() => {
+                    const query = studentsQuery.value;
+                    const previousData = data.value;
+
+                    return defer(async () => {
+                        const result = await getStudents(query);
+
+                        return { query, previousData, result };
+                    }).pipe(
+                        catchError((error: unknown) => {
+                            console.warn('Не удалось проверить актуальность студентов', error);
+                            return EMPTY;
+                        }),
+                    );
+                }),
+            )
+            .subscribe(({ query, previousData, result }) => {
+                if (
+                    query !== studentsQuery.value ||
+                    previousData !== data.value ||
+                    isLoading.value ||
+                    isDeleting.value ||
+                    !previousData
+                ) {
+                    return;
+                }
+
+                isStudentsOutdated.value =
+                    result.studentsCount !== previousData.studentsCount ||
+                    result.totalPages !== previousData.totalPages ||
+                    JSON.stringify(result.students) !== JSON.stringify(previousData.students);
+            });
+    });
 
     let loadingTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -46,7 +101,7 @@ export function useStudentsList() {
             clearTimeout(loadingTimer);
             showLoading.value = false;
 
-            if (loading) {
+            if (loading && import.meta.client) {
                 loadingTimer = setTimeout(() => {
                     showLoading.value = true;
                 }, 500);
@@ -57,6 +112,7 @@ export function useStudentsList() {
 
     onUnmounted(() => {
         clearTimeout(loadingTimer);
+        refreshSubscription?.unsubscribe();
     });
 
     function changePage(page: number): void {
@@ -141,6 +197,7 @@ export function useStudentsList() {
         isLoading,
         showLoading,
         isDeleting,
+        isStudentsOutdated,
         actionError,
         selectedStudentId,
         currentPage,

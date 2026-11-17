@@ -17,6 +17,7 @@ const {
     isLoading,
     showLoading,
     isDeleting,
+    isStudentsOutdated,
     actionError,
     selectedStudentId,
     currentPage,
@@ -43,7 +44,7 @@ const {
 
         <StudentActions
             :is-admin="userStore.isAdmin"
-            :disabled="selectedStudentId === null || isLoading || isDeleting"
+            :disabled="selectedStudentId === null || isLoading || isDeleting || isStudentsOutdated"
             :is-deleting="isDeleting"
             @open="openSelectedStudent"
             @edit="editSelectedStudent"
@@ -57,14 +58,22 @@ const {
             @change="changePage"
         />
 
-        <h1 v-if="showLoading" role="status">Загрузка студентов…</h1>
+        <h2 v-if="(!data && isLoading) || showLoading" class="status-message" role="status">
+            Загрузка студентов...
+        </h2>
+
+        <h2 v-if="isStudentsOutdated" class="status-message" role="status">
+            Данные изменились. Перезагрузите страницу.
+        </h2>
 
         <StudentTable
             v-if="data"
             :students="data.students"
             :row-offset="rowOffset"
             :selected-student-id="selectedStudentId"
-            @select="!isLoading && !isDeleting && (selectedStudentId = $event)"
+            @select="
+                !isLoading && !isDeleting && !isStudentsOutdated && (selectedStudentId = $event)
+            "
             @open="openStudent"
         />
     </section>

@@ -168,6 +168,21 @@ textarea {
     overflow-wrap: anywhere;
 }
 
+.status-message {
+    width: fit-content;
+    max-width: calc(100% - 2rem);
+    margin: 1rem auto;
+    padding: 0.625rem 1rem;
+    border: 0.0625rem solid var(--color-border-light);
+    border-radius: 0.5rem;
+    background-color: var(--color-table-background);
+    color: var(--color-text);
+    font-size: 1.125rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+}
+
 /* медиа запрос для адаптивности */
 
 @media (min-width: 1920px) {
