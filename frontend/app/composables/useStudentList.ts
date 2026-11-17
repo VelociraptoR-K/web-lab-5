@@ -4,11 +4,12 @@ import type { StudentFiltersParams } from '~/types/filterParams';
 import { EMPTY, catchError, defer, exhaustMap } from 'rxjs';
 import type { Subscription } from 'rxjs';
 import { createStudentRefreshStream } from '~/streams/studentRefresh';
+import type { StudentsPage } from '~/types/student';
 
 export function useStudentsList() {
     const config = useRuntimeConfig();
     const userStore = useUserStore();
-    const { getStudents, deleteStudent } = useStudentApi();
+    const { getStudents, deleteStudent, clearStudentCache } = useStudentApi();
 
     const isDeleting = ref(false);
     const isLoading = computed(() => status.value === 'idle' || status.value === 'pending');
@@ -27,19 +28,29 @@ export function useStudentsList() {
         page: currentPage.value,
         limit: pageSize,
     }));
+    const studentsKey = computed(
+        () => `students-list:${userStore.user?.id}:${JSON.stringify(studentsQuery.value)}`,
+    );
 
     const isStudentsOutdated = ref(false);
 
     const totalPages = computed(() => data.value?.totalPages ?? 0);
     const rowOffset = computed(() => ((data.value?.page ?? 1) - 1) * pageSize);
 
-    const { data, status, error, refresh } = useAsyncData(
-        'students-list',
+    const { data, status, error, refresh } = useAsyncData<StudentsPage>(
+        studentsKey,
         () => getStudents(studentsQuery.value),
         {
             server: false,
             lazy: true,
-            watch: [currentPage, activeFilters],
+
+            getCachedData(key, nuxtApp, context) {
+                if (context.cause !== 'initial') {
+                    return undefined;
+                }
+
+                return nuxtApp.payload.data[key] as StudentsPage | undefined;
+            },
         },
     );
 
@@ -90,6 +101,10 @@ export function useStudentsList() {
                     result.studentsCount !== previousData.studentsCount ||
                     result.totalPages !== previousData.totalPages ||
                     JSON.stringify(result.students) !== JSON.stringify(previousData.students);
+
+                if (isStudentsOutdated.value) {
+                    clearStudentCache();
+                }
             });
     });
 

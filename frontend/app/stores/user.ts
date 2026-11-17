@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import type { User } from '@/types/auth';
 
 export const useUserStore = defineStore('user', () => {
+    const nuxtApp = useNuxtApp();
     const user = ref<User | null>(null);
     const accessToken = ref<string | null>(null);
 
@@ -19,6 +20,10 @@ export const useUserStore = defineStore('user', () => {
     }
 
     function clearUser(): void {
+        nuxtApp.runWithContext(() => {
+            clearNuxtData((key) => key.startsWith('students-list:'));
+        });
+
         user.value = null;
         accessToken.value = null;
     }

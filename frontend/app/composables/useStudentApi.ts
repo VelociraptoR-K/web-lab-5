@@ -9,7 +9,16 @@ import type {
 import { notifyStudentsChanged } from '~/streams/studentChanges';
 
 export function useStudentApi() {
-    const { $api } = useNuxtApp();
+    const nuxtApp = useNuxtApp();
+    const { $api } = nuxtApp;
+
+    function clearStudentCache(): void {
+        for (const key of Object.keys(nuxtApp.payload.data)) {
+            if (key.startsWith('students-list:')) {
+                delete nuxtApp.payload.data[key];
+            }
+        }
+    }
 
     function getStudents(query: StudentsQuery): Promise<StudentsPage> {
         const useQuery =
@@ -64,6 +73,7 @@ export function useStudentApi() {
             body: student,
         });
 
+        clearStudentCache();
         if (import.meta.client) {
             notifyStudentsChanged();
         }
@@ -77,6 +87,7 @@ export function useStudentApi() {
             body: changedFields,
         });
 
+        clearStudentCache();
         if (import.meta.client) {
             notifyStudentsChanged();
         }
@@ -89,12 +100,14 @@ export function useStudentApi() {
             method: 'DELETE',
         });
 
+        clearStudentCache();
         if (import.meta.client) {
             notifyStudentsChanged();
         }
     }
 
     return {
+        clearStudentCache,
         getStudents,
         getAllStudentsFiltered,
         getStudentById,

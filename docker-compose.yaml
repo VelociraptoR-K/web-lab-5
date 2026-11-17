@@ -34,8 +34,12 @@ services:
 
   frontend:
     build: ./frontend
+    env_file:
+      - ./frontend/.env
+    environment:
+      NUXT_JAVA_API_BASE_URL: http://backend:8080/api
     ports:
-      - "2000:80"
+      - "2000:3000"
     depends_on:
       - backend
 
